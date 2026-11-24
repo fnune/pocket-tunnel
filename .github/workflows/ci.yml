@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
+        with:
+          dev-shell: ci
+          cache-paths: |
+            .cache/go-build
+            go/pkg/mod
+          cache-key-files: go.sum
+          command: just check
+
+  package:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
+        with:
+          dev-shell: ci
+          cache-paths: |
+            go/pkg/mod
+            ./.cache
+          cache-key-files: go.sum
+          command: just build
+
+  vm-test:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
+        with:
+          dev-shell: ""
+          kvm: "true"
+          command: nix build .#checks.x86_64-linux.vm --print-build-logs

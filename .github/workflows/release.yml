@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  wait-for-ci:
+    runs-on: ubuntu-26.04
+    permissions:
+      checks: read
+    steps:
+      - name: Wait for CI to pass
+        run: |
+          for _ in {1..90}; do
+            STATUS=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
+              --jq '.check_runs
+                    | map(select(.name != "wait-for-ci" and .name != "release"))
+                    | group_by(.name)
+                    | map(max_by(.id))
+                    | if length == 0 then "pending"
+                      elif any(.status != "completed") then "pending"
+                      elif any(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out") then "failure"
+                      else "success" end')
+            echo "CI status: $STATUS"
+            if [ "$STATUS" = "success" ]; then
+              exit 0
+            elif [ "$STATUS" = "failure" ]; then
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for CI"
+          exit 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  release:
+    needs: wait-for-ci
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check that pak.json matches the tag
+        run: |
+          pak_version="$(jq --raw-output .version pak.json)"
+          if [ "$pak_version" != "${GITHUB_REF_NAME}" ]; then
+            echo "pak.json has version $pak_version, but the tag is ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+      - name: Build the pak and write the release notes
+        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
+        with:
+          dev-shell: ci
+          cache-paths: |
+            go/pkg/mod
+            ./.cache
+          cache-key-files: go.sum
+          command: |
+            just build
+            (cd dist && sha256sum -- Pocket.Tunnel.pak.zip > SHA256SUMS)
+            git-cliff --latest --strip header > dist/release-notes.md
+      - name: Publish the release
+        run: |
+          gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" \
+            --notes-file dist/release-notes.md dist/Pocket.Tunnel.pak.zip dist/SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}

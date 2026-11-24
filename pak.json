@@ -1,0 +1,15 @@
+{
+  "name": "Pocket Tunnel",
+  "version": "v0.1.0",
+  "type": "TOOL",
+  "description": "A VPN tunnel from this device to your home network, using the wireguard-go library",
+  "author": "fnune",
+  "repo_url": "https://github.com/fnune/pocket-tunnel",
+  "release_filename": "Pocket.Tunnel.pak.zip",
+  "platforms": [
+    "tg5040",
+    "tg5050",
+    "h700"
+  ],
+  "experimental": true
+}
