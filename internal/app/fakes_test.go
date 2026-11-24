@@ -125,3 +125,7 @@ func template() *conf.Config {
 	}
 	return cfg
 }
+
+type fakeNetwork struct{ online bool }
+
+func (f *fakeNetwork) Online() bool { return f.online }

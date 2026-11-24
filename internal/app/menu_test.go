@@ -7,7 +7,7 @@ import (
 )
 
 func newMenu(ui *fakeUI, store *fakeStore, tunnel *fakeTunnel, boot *fakeBootHook, clock *fakeClock) *Menu {
-	return NewMenu(ui, store, tunnel, boot, clock)
+	return NewMenu(ui, store, tunnel, boot, &fakeNetwork{online: true}, clock)
 }
 
 func shown(item MenuItem) string {
@@ -123,5 +123,17 @@ func TestThePublicKeyIsSplitAcrossTwoLinesToFitTheScreen(t *testing.T) {
 		if len(line) > 30 && !strings.Contains(line, "/") {
 			t.Errorf("line too long for the screen: %q", line)
 		}
+	}
+}
+
+func TestStatusSaysNoNetworkWhenTheDeviceIsOffline(t *testing.T) {
+	ui := &fakeUI{}
+	menu := NewMenu(ui, &fakeStore{cfg: complete()}, &fakeTunnel{running: true}, &fakeBootHook{}, &fakeNetwork{online: false}, &fakeClock{})
+	if err := menu.Run(); err != nil {
+		t.Fatal(err)
+	}
+	status := ui.menus[0][itemStatus]
+	if got := shown(status); got != "No network" || status.BackgroundColor != colorSecondary {
+		t.Errorf("status = %q in %s, want No network in grey", got, status.BackgroundColor)
 	}
 }

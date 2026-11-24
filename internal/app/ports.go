@@ -39,6 +39,10 @@ type Tunnel interface {
 	LastHandshake() (time.Time, error)
 }
 
+type Network interface {
+	Online() bool
+}
+
 type BootHook interface {
 	Enabled() bool
 	Enable() error

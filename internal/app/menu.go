@@ -18,20 +18,20 @@ const (
 const (
 	colorSecondary = "#484949"
 	colorProgress  = "#1a65a6"
-	colorError     = "#ca3535"
 	colorSuccess   = "#0f7a52"
 )
 
 const (
 	statusNotConfigured = iota
+	statusNoNetwork
 	statusOff
 	statusConnecting
 	statusConnected
 )
 
-var statusOptions = []string{"Not configured", "Off", "Connecting", "Connected"}
+var statusOptions = []string{"Not configured", "No network", "Off", "Connecting", "Connected"}
 
-var statusColors = []string{colorError, colorSecondary, colorProgress, colorSuccess}
+var statusColors = []string{colorSecondary, colorSecondary, colorSecondary, colorProgress, colorSuccess}
 
 var toggleOptions = []string{"Enabled", "Disabled"}
 
@@ -44,15 +44,16 @@ const (
 )
 
 type Menu struct {
-	ui     UI
-	store  ConfigStore
-	tunnel Tunnel
-	boot   BootHook
-	clock  Clock
+	ui      UI
+	store   ConfigStore
+	tunnel  Tunnel
+	boot    BootHook
+	network Network
+	clock   Clock
 }
 
-func NewMenu(ui UI, store ConfigStore, tunnel Tunnel, boot BootHook, clock Clock) *Menu {
-	return &Menu{ui: ui, store: store, tunnel: tunnel, boot: boot, clock: clock}
+func NewMenu(ui UI, store ConfigStore, tunnel Tunnel, boot BootHook, network Network, clock Clock) *Menu {
+	return &Menu{ui: ui, store: store, tunnel: tunnel, boot: boot, network: network, clock: clock}
 }
 
 func (m *Menu) Run() error {
@@ -106,6 +107,9 @@ func toggle(label string, enabled bool) MenuItem {
 func (m *Menu) status(cfg *conf.Config) int {
 	if len(cfg.Missing()) > 0 {
 		return statusNotConfigured
+	}
+	if !m.network.Online() {
+		return statusNoNetwork
 	}
 	if !m.tunnel.Running() {
 		return statusOff

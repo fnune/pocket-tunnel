@@ -115,7 +115,7 @@ func (u *UI) CloseProgress() {
 }
 
 func (u *UI) Message(text string) error {
-	cmd := exec.Command(filepath.Join(u.binDir, "minui-presenter"), "--message", text, "--timeout", "-1")
+	cmd := exec.Command(filepath.Join(u.binDir, "minui-presenter"), "--message", text, "--timeout", "0", "--confirm-show", "--confirm-text", "OK")
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		var exitErr *exec.ExitError

@@ -13,6 +13,7 @@ import (
 
 	"github.com/fnune/pocket-tunnel/internal/app"
 	"github.com/fnune/pocket-tunnel/internal/minui"
+	"github.com/fnune/pocket-tunnel/internal/netstate"
 	"github.com/fnune/pocket-tunnel/internal/process"
 	"github.com/fnune/pocket-tunnel/internal/store"
 	"github.com/fnune/pocket-tunnel/internal/tunnel"
@@ -54,6 +55,7 @@ func main() {
 			configs,
 			process.NewTunnel(upCommand, *logFile, iface, pidFile),
 			process.NewBootHook(*autoSh, upCommand, *logFile),
+			netstate.New(iface),
 			systemClock{},
 		)
 		if err := menu.Run(); err != nil {

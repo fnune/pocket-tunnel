@@ -9,7 +9,8 @@ def menu(state_dir: str, *choices: str) -> None:
         f" --state-dir {state_dir}"
         " --bin-dir /etc/handheld/bin"
         " --auto-sh /var/lib/auto.sh"
-        " --log-file /var/lib/tunnel.log"
+        " --log-file /var/lib/tunnel.log",
+        timeout=timedelta(seconds=60),
     )
 
 
@@ -47,6 +48,14 @@ with subtest("the menu shows the tunnel as connected"):
     items = last_menu()
     assert "Status=Connected" in items, items
     assert "Tunnel=Enabled" in items, items
+
+with subtest("the menu says no network while the device is offline"):
+    handheld.succeed("ip link set eth0 down", "ip link set eth1 down")
+    menu("/var/lib/wg")
+    items = last_menu()
+    assert "Status=No network" in items, items
+    handheld.succeed("ip link set eth0 up", "ip link set eth1 up")
+    handheld.wait_until_succeeds("ping -c 1 -W 1 10.100.0.1", timeout=timedelta(seconds=60))
 
 with subtest("the public key shown is the one derived from the provided private key"):
     menu("/var/lib/wg", "Show public key")
