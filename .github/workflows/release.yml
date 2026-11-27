@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   wait-for-ci:
     runs-on: ubuntu-26.04
@@ -43,6 +47,8 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,21 +61,13 @@ jobs:
             echo "pak.json has version $pak_version, but the tag is ${GITHUB_REF_NAME}"
             exit 1
           fi
-      - name: Build the pak and write the release notes
-        uses: fnune/ci@efd9d3202653a8ff8e41995ad8225c9f77a19a98
+      - name: Build, attest and publish the pak
+        uses: fnune/ci@89fe6fc6a28570ae8e1c8996029ecc9c16291b7a
         with:
           dev-shell: ci
           cache-paths: |
             go/pkg/mod
             ./.cache
           cache-key-files: go.sum
-          command: |
-            just build
-            (cd dist && sha256sum -- Pocket.Tunnel.pak.zip > SHA256SUMS)
-            git-cliff --latest --strip header > dist/release-notes.md
-      - name: Publish the release
-        run: |
-          gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" \
-            --notes-file dist/release-notes.md dist/Pocket.Tunnel.pak.zip dist/SHA256SUMS
-        env:
-          GH_TOKEN: ${{ github.token }}
+          command: just build
+          release: true
